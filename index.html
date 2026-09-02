@@ -99,6 +99,20 @@ tbody tr:hover{background:#f8fafc;}
 .special-select{padding:6px 8px;font-size:11px;border-radius:6px;border:1px solid #e2e8f0;background:#fff;color:#475569;width:100%;cursor:pointer;transition:all 0.2s;}
 .special-select:focus{outline:none;border-color:#22c55e;}
 .special-select.special-set{background:#fef3c7;border-color:#f59e0b;color:#92400e;font-weight:600;}
+.inline-search{position:relative;}
+.inline-input{font-size:11px;color:#334155;padding:7px 8px;border-radius:6px;border:1px solid #cbd5e1;width:100%;background:#fff;outline:none;transition:all 0.15s;}
+.inline-input::placeholder{color:#94a3b8;}
+.inline-input:focus{border-color:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,0.15);background:#f0fdf4;}
+.inline-input.ok{background:#f0fdf4;border-color:#bbf7d0;color:#166534;font-weight:500;}
+.inline-input.fail{background:#fef2f2;border-color:#fecaca;color:#991b1b;font-weight:500;}
+.inline-input.home-inline{height:38px;font-size:13px;padding:8px 12px;}
+.inline-input.home-inline.set{border-style:solid;border-color:#22c55e;background:#f0fdf4;color:#1e293b;font-weight:500;}
+.inline-suggest{position:fixed;display:none;background:#fff;border:1px solid #cbd5e1;border-radius:8px;box-shadow:0 10px 25px rgba(0,0,0,0.15);max-height:230px;overflow-y:auto;z-index:5000;}
+.inline-suggest-item{padding:9px 12px;cursor:pointer;text-align:left;border-bottom:1px solid #f1f5f9;}
+.inline-suggest-item:last-child{border-bottom:none;}
+.inline-suggest-item:hover{background:#f0fdf4;}
+.inline-suggest-item .isn{font-weight:600;color:#cc0000;font-size:12px;}
+.inline-suggest-item .isa{font-size:11px;color:#64748b;margin-top:2px;}
 @media print{
   body{background:#fff;padding:0;margin:0;}
   .main-container{max-width:100%;box-shadow:none;border:none;border-radius:0;margin:0;}
@@ -113,6 +127,7 @@ tbody tr:hover{background:#f8fafc;}
   thead th{padding:8px 5px;font-size:12px;font-weight:700;color:#000;}
   tbody td{padding:8px 5px;font-size:12px;font-weight:600;color:#000;}
   .lpill{font-size:11px;padding:4px 7px;font-weight:600;}
+  .inline-input{font-size:11px;padding:4px 7px;font-weight:600;border:none;background:transparent !important;color:#000 !important;}
   .dist-tag{font-size:10px;font-weight:600;}
   .grand{padding:12px 16px;page-break-after:avoid;}
   .grand .val{font-size:18px;}
@@ -158,9 +173,12 @@ tbody tr:hover{background:#f8fafc;}
     </div>
     <div class="fg">
       <label>Home Location</label>
-      <button class="home-btn" id="homeBtn" onclick="openModal(-1,'home')">
-        <i class="ti ti-map-pin"></i> Set Home Location
-      </button>
+      <div class="inline-search">
+        <input type="text" class="inline-input home-inline" id="homeInput"
+               placeholder="Type home location..." autocomplete="off"
+               oninput="onInlineInput(this, -1, 'home')"
+               onfocus="onInlineFocus(this, -1, 'home')" />
+      </div>
     </div>
   </div>
 
@@ -360,6 +378,7 @@ function distanceFallback(lat1,lon1,lat2,lon2) {
 // STATE
 // ============================================================================
 let rows=[], homeLoc=null, curRow=null, curType=null;
+let builtMonth=null, builtYear=null;
 let mbMap=null, mbMarker=null;
 let selCoords=null, selName=null, selSub=null;
 const distCache = {};
@@ -372,6 +391,11 @@ function sanitizeHTML(s) {
   const d = document.createElement('div');
   d.textContent = s;
   return d.innerHTML;
+}
+
+// Safe for use inside a double-quoted HTML attribute (also escapes quotes)
+function escAttr(s) {
+  return sanitizeHTML(s).replace(/"/g, '&quot;');
 }
 
 
@@ -434,9 +458,9 @@ function loadDataLocally() {
       rows = data.rows || [];
       homeLoc = data.homeLoc || null;
       if(homeLoc) {
-        const btn = document.getElementById('homeBtn');
-        btn.innerHTML = `<i class="ti ti-map-pin"></i> ${sanitizeHTML(homeLoc.name)}`;
-        btn.classList.add('set');
+        const inp = document.getElementById('homeInput');
+        inp.value = homeLoc.name;
+        inp.classList.add('set');
       }
       console.log('✅ Data loaded from your device');
       return true;
@@ -485,14 +509,19 @@ function buildTableStructure() {
   const dm = new Date(y,m+1,0).getDate();
   const DATES = [lp];
   for(let d=1;d<=dm;d++) DATES.push(d);
-  
-  // Check if we have saved data for this month/year
-  const hasExisting = rows.length > 0 && rows[0].date === lp;
-  
+
+  // Check if we already have data built for this exact month/year
+  // (comparing only the previous-month date here was buggy: e.g. August and
+  // September both have "31" as their previous-month last date, so it would
+  // wrongly reuse September's 30-day rows for August and hide the 31st).
+  const hasExisting = rows.length === DATES.length && builtMonth === m && builtYear === y;
+
   if(!hasExisting) {
     rows = DATES.map((d,i) => ({
       date:d, isFirstRow:i===0, isLastRow:i===DATES.length-1, night:null, day:null, specialActivity:""
     }));
+    builtMonth = m;
+    builtYear  = y;
   }
   buildTable();
 }
@@ -520,19 +549,25 @@ async function buildTable() {
     }
 
     const dayBox = `<td>${!row.isFirstRow ? `
-      <span class="lpill ${row.day?'set':''} ${row.day?(dStat.ok||hasSpecial?'ok':'fail'):''}"
-            onclick="openModal(${i},'day')">
-        ${row.day ? sanitizeHTML(row.day.name) : 'Select Day Location'}
+      <div class="inline-search">
+        <input type="text" class="inline-input ${row.day?(dStat.ok||hasSpecial?'ok':'fail'):''}"
+               id="dayInput_${i}" value="${row.day?escAttr(row.day.name):''}"
+               placeholder="Type day location..." autocomplete="off"
+               oninput="onInlineInput(this, ${i}, 'day')"
+               onfocus="onInlineFocus(this, ${i}, 'day')" />
         ${row.day ? `<span class="dist-tag">${dStat.dist} km</span>` : ''}
-      </span>` : '<span style="color:#94a3b8;font-size:10px;">Prev Month</span>'}</td>`;
+      </div>` : '<span style="color:#94a3b8;font-size:10px;">Prev Month</span>'}</td>`;
 
     const nStat = await checkLoc(row.night);
     const nightBox = `<td>
-      <span class="lpill ${row.night?'set':''} ${row.night?(nStat.ok||hasSpecial?'ok':'fail'):''}"
-            onclick="openModal(${i},'night')">
-        ${row.night ? sanitizeHTML(row.night.name) : 'Select Night Location'}
+      <div class="inline-search">
+        <input type="text" class="inline-input ${row.night?(nStat.ok||hasSpecial?'ok':'fail'):''}"
+               id="nightInput_${i}" value="${row.night?escAttr(row.night.name):''}"
+               placeholder="Type night location..." autocomplete="off"
+               oninput="onInlineInput(this, ${i}, 'night')"
+               onfocus="onInlineFocus(this, ${i}, 'night')" />
         ${row.night ? `<span class="dist-tag">${nStat.dist} km</span>` : ''}
-      </span></td>`;
+      </div></td>`;
 
     const statusBox = `<td>${!row.isFirstRow
       ? (eligible ? `<span class="cyes">${hasSpecial ? row.specialActivity.split(' ')[0] : 'YES'}</span>` : '<span class="cno">NO</span>')
@@ -656,13 +691,125 @@ async function doSearch() {
   }
 }
 
+// ============================================================================
+// INLINE DAY/NIGHT LOCATION SEARCH — direct type, no separate popup box
+// ============================================================================
+let inlineTimer = null;
+let inlineTarget = null; // { rowIdx, type, inputEl }
+
+function ensureSuggestBox() {
+  let box = document.getElementById('inlineSuggestBox');
+  if (!box) {
+    box = document.createElement('div');
+    box.id = 'inlineSuggestBox';
+    box.className = 'inline-suggest';
+    document.body.appendChild(box);
+  }
+  return box;
+}
+
+function positionSuggestBox(inputEl) {
+  const box = ensureSuggestBox();
+  const r = inputEl.getBoundingClientRect();
+  const spaceBelow = window.innerHeight - r.bottom;
+  box.style.width = r.width + 'px';
+  box.style.left = Math.max(4, r.left) + 'px';
+  if (spaceBelow < 180 && r.top > 180) {
+    box.style.top = 'auto';
+    box.style.bottom = (window.innerHeight - r.top + 4) + 'px';
+  } else {
+    box.style.bottom = 'auto';
+    box.style.top = (r.bottom + 4) + 'px';
+  }
+}
+
+function hideSuggestBox() {
+  const box = document.getElementById('inlineSuggestBox');
+  if (box) { box.style.display = 'none'; box.innerHTML = ''; }
+  inlineTarget = null;
+}
+
+function onInlineFocus(inputEl, rowIdx, type) {
+  inlineTarget = { rowIdx, type, inputEl };
+  const q = inputEl.value.trim();
+  if (q.length >= 2) doInlineSearch(q);
+}
+
+function onInlineInput(inputEl, rowIdx, type) {
+  inlineTarget = { rowIdx, type, inputEl };
+  clearTimeout(inlineTimer);
+  const q = inputEl.value.trim();
+  if (q.length < 2) { hideSuggestBox(); inlineTarget = { rowIdx, type, inputEl }; return; }
+  inlineTimer = setTimeout(() => doInlineSearch(q), 400);
+}
+
+async function doInlineSearch(q) {
+  if (!inlineTarget) return;
+  const { inputEl } = inlineTarget;
+  const box = ensureSuggestBox();
+  positionSuggestBox(inputEl);
+  box.style.display = 'block';
+  box.innerHTML = '<div class="inline-suggest-item" style="color:#94a3b8;cursor:default;">Searching...</div>';
+
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=jsonv2&limit=8&countrycodes=in&addressdetails=1`;
+    const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+    const data = await res.json();
+
+    // Ignore stale results if the user already moved to a different field or closed the box
+    if (!inlineTarget || inlineTarget.inputEl !== inputEl) return;
+
+    box.innerHTML = '';
+    if (!data.length) {
+      box.innerHTML = '<div class="inline-suggest-item" style="color:#94a3b8;cursor:default;">No results. Try a broader search.</div>';
+      return;
+    }
+    data.forEach(item => {
+      const sub = item.address?.suburb || item.address?.subdistrict ||
+                  item.address?.county || item.address?.city_district || '';
+      const name = item.name || item.display_name.split(',')[0];
+      const div = document.createElement('div');
+      div.className = 'inline-suggest-item';
+      div.innerHTML = `<div class="isn">${sanitizeHTML(name)}</div><div class="isa">${sanitizeHTML(item.display_name)}</div>`;
+      div.onclick = () => selectInlineLocation({ lat: parseFloat(item.lat), lng: parseFloat(item.lon), name, sub });
+      box.appendChild(div);
+    });
+  } catch (e) {
+    if (!inlineTarget || inlineTarget.inputEl !== inputEl) return;
+    box.innerHTML = '<div class="inline-suggest-item" style="color:#991b1b;cursor:default;">Search failed. Please retry.</div>';
+  }
+}
+
+function selectInlineLocation(loc) {
+  if (!inlineTarget) return;
+  const { rowIdx, type } = inlineTarget;
+  if (type === 'home') {
+    homeLoc = { lat: loc.lat, lng: loc.lng, name: loc.name, sub: loc.sub };
+    const inp = document.getElementById('homeInput');
+    if (inp) { inp.value = loc.name; inp.classList.add('set'); }
+  } else {
+    rows[rowIdx][type] = { lat: loc.lat, lng: loc.lng, name: loc.name, sub: loc.sub };
+  }
+  saveDataLocally();
+  hideSuggestBox();
+  buildTable();
+}
+
+document.addEventListener('click', (e) => {
+  const box = document.getElementById('inlineSuggestBox');
+  if (!box || box.style.display === 'none') return;
+  if (e.target.closest('.inline-search') || box.contains(e.target)) return;
+  hideSuggestBox();
+});
+document.addEventListener('scroll', () => hideSuggestBox(), true);
+window.addEventListener('resize', () => hideSuggestBox());
+
 function confirmLoc() {
   if(!selCoords || !selName) { alert('Please select a location'); return; }
   if(curType==='home') {
     homeLoc = { lat:selCoords.lat, lng:selCoords.lng, name:selName, sub:selSub };
-    const btn = document.getElementById('homeBtn');
-    btn.innerHTML = `<i class="ti ti-map-pin"></i> ${sanitizeHTML(selName)}`;
-    btn.classList.add('set');
+    const inp = document.getElementById('homeInput');
+    if(inp) { inp.value = selName; inp.classList.add('set'); }
   } else if(curRow !== null) {
     rows[curRow][curType] = { lat:selCoords.lat, lng:selCoords.lng, name:selName, sub:selSub };
   }
