@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Jadwal Allowance Employee Form</title>
-  <link rel="stylesheet" href="https://unpkg.com/tabler-icons@latest/tabler-icons.css">
-  <link href="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/tabler-icons@1.35.0/tabler-icons.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
 <style>
@@ -43,8 +43,15 @@ tbody tr:hover{background:#f8fafc;}
 .lpill.fail{background:#fef2f2;border-color:#fecaca;color:#991b1b;}
 .dist-tag{font-size:9px;display:block;margin-top:2px;font-weight:500;color:#64748b;}
 .lpill.ok .dist-tag{color:#15803d;}.lpill.fail .dist-tag{color:#b91c1c;}
+.lpill.set{display:flex;align-items:flex-start;justify-content:space-between;gap:4px;white-space:normal;}
+.lpill.set .pill-main{flex:1;overflow:hidden;}
+.pill-clear{flex-shrink:0;font-size:13px;line-height:1;color:#94a3b8;padding:0 2px;border-radius:3px;cursor:pointer;transition:color 0.15s,background 0.15s;}
+.pill-clear:hover{color:#991b1b;background:#fee2e2;}
+.lpill.ok .pill-clear:hover{color:#991b1b;}
 .cyes{background:#166534;color:#fff;font-weight:600;font-size:11px;border-radius:4px;padding:3px 8px;display:inline-block;}
 .cno{color:#94a3b8;font-size:12px;}
+.wd{display:block;font-size:10px;color:#94a3b8;font-weight:500;line-height:1.2;}
+.wd.sun{color:#cc0000;}
 .foot-row td{background:#f8fafc;font-weight:700;font-size:13px;padding:14px 10px;color:#1e293b;}
 .grand{background:#1e293b;padding:20px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
 .grand .lbl{font-size:14px;color:#94a3b8;font-weight:500;}
@@ -82,10 +89,12 @@ tbody tr:hover{background:#f8fafc;}
   .srow button{width:100%;padding:10px 16px;font-size:13px;}
 }
 .rlist{overflow-y:auto;flex:1;min-height:150px;max-height:240px;background:#fff;}
-.ri{padding:12px 20px;cursor:pointer;border-bottom:1px solid #f1f5f9;transition:background 0.2s;}
-.ri:hover{background:#f8fafc;}
-.ri .rn{font-weight:600;color:#cc0000;font-size:13px;}
-.ri .ra{font-size:12px;color:#64748b;margin-top:2px;}
+.ri{padding:10px 20px;cursor:pointer;border-bottom:1px solid #f1f5f9;transition:background 0.15s;display:flex;align-items:flex-start;gap:12px;}
+.ri:hover,.ri.active{background:#f1f5f9;}
+.ri-ic{font-size:18px;color:#94a3b8;margin-top:2px;flex-shrink:0;}
+.ri-tx{min-width:0;flex:1;}
+.ri .rn{font-weight:600;color:#1e293b;font-size:14px;}
+.ri .ra{font-size:12px;color:#64748b;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .mapbox{height:220px;width:100%;border-top:1px solid #e2e8f0;position:relative;}
 #map{width:100%;height:100%;}
 .mfoot{padding:14px 20px;border-top:1px solid #e2e8f0;display:flex;align-items:center;gap:12px;background:#f8fafc;}
@@ -99,40 +108,51 @@ tbody tr:hover{background:#f8fafc;}
 .special-select{padding:6px 8px;font-size:11px;border-radius:6px;border:1px solid #e2e8f0;background:#fff;color:#475569;width:100%;cursor:pointer;transition:all 0.2s;}
 .special-select:focus{outline:none;border-color:#22c55e;}
 .special-select.special-set{background:#fef3c7;border-color:#f59e0b;color:#92400e;font-weight:600;}
-.inline-search{position:relative;}
-.inline-input{font-size:11px;color:#334155;padding:7px 8px;border-radius:6px;border:1px solid #cbd5e1;width:100%;background:#fff;outline:none;transition:all 0.15s;}
-.inline-input::placeholder{color:#94a3b8;}
-.inline-input:focus{border-color:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,0.15);background:#f0fdf4;}
-.inline-input.ok{background:#f0fdf4;border-color:#bbf7d0;color:#166534;font-weight:500;}
-.inline-input.fail{background:#fef2f2;border-color:#fecaca;color:#991b1b;font-weight:500;}
-.inline-input.home-inline{height:38px;font-size:13px;padding:8px 12px;}
-.inline-input.home-inline.set{border-style:solid;border-color:#22c55e;background:#f0fdf4;color:#1e293b;font-weight:500;}
-.inline-suggest{position:fixed;display:none;background:#fff;border:1px solid #cbd5e1;border-radius:8px;box-shadow:0 10px 25px rgba(0,0,0,0.15);max-height:230px;overflow-y:auto;z-index:5000;}
-.inline-suggest-item{padding:9px 12px;cursor:pointer;text-align:left;border-bottom:1px solid #f1f5f9;}
-.inline-suggest-item:last-child{border-bottom:none;}
-.inline-suggest-item:hover{background:#f0fdf4;}
-.inline-suggest-item .isn{font-weight:600;color:#cc0000;font-size:12px;}
-.inline-suggest-item .isa{font-size:11px;color:#64748b;margin-top:2px;}
 @media print{
-  body{background:#fff;padding:0;margin:0;}
-  .main-container{max-width:100%;box-shadow:none;border:none;border-radius:0;margin:0;}
-  .hdr{page-break-after:avoid;padding:12px 16px;}
-  .hdr-title-area h1{font-size:18px;}
-  .engine-badge{display:none;}
-  .emp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px 16px;page-break-after:avoid;}
-  .fg input,.fg select{font-size:11px;padding:4px 8px;height:28px;}
-  .info-bar{padding:8px 16px;font-size:11px;page-break-after:avoid;}
-  .tbl-wrap{overflow:visible;page-break-inside:avoid;}
-  table{font-size:13px;width:100%;font-weight:600;}
-  thead th{padding:8px 5px;font-size:12px;font-weight:700;color:#000;}
-  tbody td{padding:8px 5px;font-size:12px;font-weight:600;color:#000;}
-  .lpill{font-size:11px;padding:4px 7px;font-weight:600;}
-  .inline-input{font-size:11px;padding:4px 7px;font-weight:600;border:none;background:transparent !important;color:#000 !important;}
-  .dist-tag{font-size:10px;font-weight:600;}
-  .grand{padding:12px 16px;page-break-after:avoid;}
-  .grand .val{font-size:18px;}
-  .action-bar,.submit-bar,.loading-overlay{display:none;}
-  .overlay-wrap,.modal{display:none !important;}
+  *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;color-adjust:exact !important;box-sizing:border-box;}
+  html,body{width:100%;margin:0;padding:0;background:#fff !important;}
+  body{padding:0 !important;}
+  .main-container{max-width:100% !important;width:100% !important;margin:0 !important;box-shadow:none !important;border:none !important;border-radius:0 !important;overflow:visible !important;}
+  /* Header */
+  .hdr{padding:8px 12px !important;background:#fff !important;border-bottom:2px solid #cc0000 !important;page-break-after:avoid;display:flex !important;}
+  .hdr-title-area h1{font-size:15px !important;color:#1e293b !important;}
+  .hdr-title-area p{font-size:10px !important;color:#64748b !important;}
+  .engine-badge{display:none !important;}
+  /* Employee grid */
+  .emp-grid{display:grid !important;grid-template-columns:repeat(3,1fr) !important;gap:5px !important;padding:8px 12px !important;background:#f8fafc !important;page-break-after:avoid;}
+  .fg label{font-size:9px !important;color:#475569 !important;}
+  .fg input,.fg select{font-size:10px !important;padding:2px 6px !important;height:22px !important;border:1px solid #cbd5e1 !important;color:#1e293b !important;background:#fff !important;}
+  .home-btn{font-size:10px !important;height:22px !important;padding:2px 6px !important;border:1px solid #22c55e !important;color:#1e293b !important;background:#f0fdf4 !important;}
+  /* Info bar */
+  .info-bar{padding:4px 12px !important;font-size:9px !important;background:#fffbeb !important;border-bottom:1px solid #fde68a !important;page-break-after:avoid;}
+  .info-bar b{color:#b45309 !important;}
+  /* Table — no overflow, rows allowed to break across pages */
+  .tbl-wrap{overflow:visible !important;width:100% !important;}
+  table{font-size:9.5px !important;width:100% !important;border-collapse:collapse !important;table-layout:fixed !important;}
+  thead{display:table-header-group;}
+  thead th{background:#f1f5f9 !important;padding:4px 3px !important;font-size:9px !important;color:#475569 !important;border-bottom:2px solid #e2e8f0 !important;border-top:1px solid #e2e8f0 !important;}
+  tbody td{padding:4px 3px !important;border-bottom:1px solid #e2e8f0 !important;color:#334155 !important;word-break:break-word;}
+  tbody tr{page-break-inside:avoid;}
+  tbody tr:nth-child(even){background:#f9fafb !important;}
+  .lpill{font-size:8.5px !important;padding:2px 4px !important;border-radius:3px !important;border:1px solid #e2e8f0 !important;display:block !important;text-align:left !important;white-space:normal !important;overflow:visible !important;text-overflow:unset !important;}
+  .lpill.ok{background:#f0fdf4 !important;border-color:#bbf7d0 !important;color:#166534 !important;}
+  .lpill.fail{background:#fef2f2 !important;border-color:#fecaca !important;color:#991b1b !important;}
+  .dist-tag{font-size:7.5px !important;display:block !important;color:#64748b !important;}
+  .lpill.ok .dist-tag{color:#15803d !important;}
+  .lpill.fail .dist-tag{color:#b91c1c !important;}
+  .cyes{background:#166534 !important;color:#fff !important;font-size:9px !important;padding:2px 5px !important;border-radius:3px !important;display:inline-block !important;}
+  .cno{color:#94a3b8 !important;font-size:9px !important;}
+  .wd{font-size:7.5px !important;}
+  .foot-row td{background:#f8fafc !important;font-weight:700 !important;color:#1e293b !important;padding:5px 3px !important;font-size:10px !important;}
+  /* Grand total */
+  .grand{padding:8px 12px !important;background:#1e293b !important;page-break-after:avoid;display:flex !important;}
+  .grand .lbl{color:#94a3b8 !important;font-size:11px !important;}
+  .grand .sub{color:#64748b !important;font-size:10px !important;}
+  .grand .val{font-size:15px !important;color:#FFE800 !important;}
+  .special-select{font-size:8.5px !important;padding:2px 3px !important;border:1px solid #e2e8f0 !important;}
+  /* Hide non-print elements */
+  .action-bar,.submit-bar,.loading-overlay,.overlay-wrap,.modal,#privacyNotice{display:none !important;}
+  div[style*="background:#f0f9ff"]{display:none !important;}
 }
 @media(max-width:600px){
   .hdr{padding:16px;}.hdr-title-area h1{font-size:18px;}
@@ -145,7 +165,6 @@ tbody tr:hover{background:#f8fafc;}
   .msg{text-align:center;}
 }
 </style>
-
 <div class="loading-overlay" id="loadingOverlay">
   <div class="spinner"></div>
   <p id="loadingMsg">Calculating distances...</p>
@@ -173,12 +192,9 @@ tbody tr:hover{background:#f8fafc;}
     </div>
     <div class="fg">
       <label>Home Location</label>
-      <div class="inline-search">
-        <input type="text" class="inline-input home-inline" id="homeInput"
-               placeholder="Type home location..." autocomplete="off"
-               oninput="onInlineInput(this, -1, 'home')"
-               onfocus="onInlineFocus(this, -1, 'home')" />
-      </div>
+      <button class="home-btn" id="homeBtn" onclick="openModal(-1,'home')">
+        <i class="ti ti-map-pin"></i> Set Home Location
+      </button>
     </div>
   </div>
 
@@ -213,30 +229,31 @@ tbody tr:hover{background:#f8fafc;}
       <div class="lbl">Monthly Jadwal Allowance</div>
       <div class="sub" id="grandSub">0 eligible days</div>
     </div>
-    <div class="val" id="grandVal">₹ 0</div>
+    <div class="val" id="grandVal">0 Days</div>
   </div>
 
   <div class="action-bar">
-    <button onclick="window.print()"><i class="ti ti-printer"></i> Print / PDF</button>
+    <button onclick="window.print()"><i class="ti ti-printer"></i> Print</button>
+    <button style="background:#0284c7;color:#fff;border-color:#0369a1;" onclick="sharePDF()"><i class="ti ti-share"></i> PDF Share</button>
     <button style="background:#ff6b6b;color:#fff;border-color:#ff5252;" onclick="clearAllData()"><i class="ti ti-trash"></i> Clear Data</button>
   </div>
 
   <!-- Email Section -->
   <div style="padding:16px 24px;border-top:1px solid #e2e8f0;background:#f0f9ff;">
     <div style="font-size:11px;font-weight:600;color:#475569;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">
-      <i class="ti ti-mail" style="color:#0284c7;"></i> Send Report via Email
+      <i class="ti ti-mail" style="color:#0284c7;"></i> PDF Share via Email
     </div>
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-      <input type="email" id="recipientEmail" placeholder="Enter recipient email address..."
+      <input type="email" id="recipientEmail" placeholder="Email address daalen..."
         style="flex:1;min-width:220px;padding:9px 14px;font-size:13px;border-radius:6px;border:1px solid #bae6fd;outline:none;background:#fff;color:#1e293b;"
         onfocus="this.style.borderColor='#0284c7'" onblur="this.style.borderColor='#bae6fd'" />
-      <button onclick="sendViaEmail()" style="padding:9px 20px;background:#0284c7;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:6px;">
-        <i class="ti ti-send"></i> Open in Mail App
+      <button onclick="generatePDFandEmail()" style="padding:9px 20px;background:#cc0000;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:6px;">
+        <i class="ti ti-file-type-pdf"></i> PDF Banao & Mail Karein
       </button>
     </div>
-    <div style="font-size:11px;color:#64748b;margin-top:8px;line-height:1.5;">
-      ℹ️ Aapka mail app khulega — summary auto-fill hogi. PDF ke liye pehle <b>Print / PDF</b> se save karen, phir manually attach karen.
-      <span style="color:#15803d;font-weight:600;"> No data leaves your device.</span>
+    <div style="font-size:11px;color:#64748b;margin-top:8px;line-height:1.6;">
+      ① PDF download hogi &nbsp;② Mail app khulega &nbsp;③ PDF manually attach karein
+    <div id="pdfMailStatus" style="font-size:12px;margin-top:6px;font-weight:600;min-height:18px;"></div>
     </div>
   </div>
 
@@ -245,10 +262,10 @@ tbody tr:hover{background:#f8fafc;}
     <div style="max-width:900px;margin:0 auto;">
       <p style="margin-bottom:12px;font-weight:600;color:#1e293b;">📋 Privacy Notice</p>
       <p style="margin-bottom:8px;">
-        <strong>English:</strong> This tool calculates travel allowance distance locally for user convenience. No employee tracking or centralized data collection is performed. All calculations happen on your device only.
+        <strong>English:</strong> Your saved data (locations, dates) stays only on your own device. There is no central database and no employee tracking. To work out road distance and find place names, only the place coordinates / search text (never your name or ID) are sent to free public map services (OpenStreetMap, Photon, OSRM).
       </p>
       <p style="margin-bottom:12px;">
-        <strong>हिंदी/उर्दू:</strong> यह टूल सिर्फ उपयोगकर्ता की सुविधा के लिए स्थानीय डिवाइस पर travel allowance distance calculate करता है। कोई भी कर्मचारी की ट्रैकिंग या केंद्रीय डेटा संग्रह नहीं की जाती है। सभी गणनाएं सिर्फ आपके डिवाइस पर होती हैं।
+        <strong>हिंदी/उर्दू:</strong> आपका सेव किया हुआ डेटा (लोकेशन, तारीख) सिर्फ आपके अपने डिवाइस में रहता है। कोई सेंट्रल डेटाबेस या कर्मचारी ट्रैकिंग नहीं है। रोड डिस्टेंस निकालने और जगह का नाम ढूँढने के लिए सिर्फ जगह के coordinates / सर्च टेक्स्ट (आपका नाम या ID नहीं) मुफ़्त पब्लिक मैप सेवाओं (OpenStreetMap, Photon, OSRM) को भेजे जाते हैं।
       </p>
     </div>
   </div>
@@ -263,8 +280,9 @@ tbody tr:hover{background:#f8fafc;}
     <div class="srow">
       <label>Search Location</label>
       <input type="text" id="searchInput" placeholder="Search city, area, district in India..."
-             onkeydown="if(event.key==='Enter')doSearch()" />
-      <button onclick="doSearch()"><i class="ti ti-search"></i> Search</button>
+             oninput="handleSearchInput()"
+             onkeydown="handleSearchKey(event)" autocomplete="off" spellcheck="false" />
+      <button onclick="doSearch(false)"><i class="ti ti-search"></i> Search</button>
     </div>
     <div id="rlist" class="rlist"></div>
     <div class="mapbox"><div id="map"></div></div>
@@ -274,8 +292,9 @@ tbody tr:hover{background:#f8fafc;}
     </div>
   </div>
 </div>
-
-<script src="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script>
 // ============================================================================
 // DISTANCE SYSTEM — OSRM + India Road Correction
@@ -305,11 +324,7 @@ tbody tr:hover{background:#f8fafc;}
 //   (vs OSRM raw avg error ~18%, Haversine×1.30 avg error ~10%)
 // ============================================================================
 
-// ── Mapbox token for MAP DISPLAY only (not used for distance)
-(function(){
-  const p = ['pk','eyJ1IjoiamFkd2FsLWFwcCIsImEiOiJjbHh4eHh4eHgwMDAwMnF5eHh4eHh4eHgifQ','xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'];
-  window.__mbk = p.join('.');
-})();
+// Leaflet map — no API key needed
 
 // OSRM public demo server — free, no key, no rate limit for normal use
 const OSRM_BASE = 'https://router.project-osrm.org/route/v1/driving';
@@ -325,7 +340,7 @@ function updateEngineBadge(eng) {
     name.textContent = 'OSRM + India Correction';
   } else {
     badge.className = 'engine-badge hvs';
-    name.textContent = 'Haversine Estimate';
+    name.textContent = 'Approx. estimate (road data nahi mila)';
   }
 }
 
@@ -355,7 +370,11 @@ function indiaFactor(osrmKm, straightKm) {
 // ── OSRM fetch + correction
 async function distanceViaOSRM(lat1,lon1,lat2,lon2) {
   const url = `${OSRM_BASE}/${lon1},${lat1};${lon2},${lat2}?overview=false`;
-  const res  = await fetch(url, { headers:{ Accept:'application/json' } });
+  const ctl = new AbortController();
+  const tm  = setTimeout(() => ctl.abort(), 8000);
+  let res;
+  try { res = await fetch(url, { signal: ctl.signal, headers:{ Accept:'application/json' } }); }
+  finally { clearTimeout(tm); }
   if (!res.ok) throw new Error('OSRM ' + res.status);
   const data = await res.json();
   if (!data.routes?.length) throw new Error('OSRM no route');
@@ -373,18 +392,21 @@ async function distanceViaOSRM(lat1,lon1,lat2,lon2) {
 function distanceFallback(lat1,lon1,lat2,lon2) {
   return haversineKm(lat1,lon1,lat2,lon2) * 1.30;
 }
-
 // ============================================================================
 // STATE
 // ============================================================================
 let rows=[], homeLoc=null, curRow=null, curType=null;
-let builtMonth=null, builtYear=null;
-let mbMap=null, mbMarker=null;
+let leafMap=null, leafMarker=null;
 let selCoords=null, selName=null, selSub=null;
 const distCache = {};
 
 const monthNames = ["January","February","March","April","May","June",
                     "July","August","September","October","November","December"];
+
+// Alias for export functions
+function calcDistance(lat1, lon1, lat2, lon2) {
+  return haversineKm(lat1, lon1, lat2, lon2);
+}
 
 function sanitizeHTML(s) {
   if (typeof s !== 'string') return '';
@@ -393,16 +415,12 @@ function sanitizeHTML(s) {
   return d.innerHTML;
 }
 
-// Safe for use inside a double-quoted HTML attribute (also escapes quotes)
-function escAttr(s) {
-  return sanitizeHTML(s).replace(/"/g, '&quot;');
-}
-
 
 
 // ============================================================================
 // MAIN DISTANCE FUNCTION — OSRM + correction, Haversine fallback, cached
 // ============================================================================
+let _osrmDownUntil = 0;
 async function getRoadDistance(lat1,lon1,lat2,lon2) {
   if (!isValidCoord(lat1,lon1) || !isValidCoord(lat2,lon2)) return 0;
 
@@ -411,18 +429,22 @@ async function getRoadDistance(lat1,lon1,lat2,lon2) {
   if (distCache[k1]) return distCache[k1];
   if (distCache[k2]) return distCache[k2];
 
-  let dist = 0;
-  try {
-    dist = await distanceViaOSRM(lat1,lon1,lat2,lon2);
-    updateEngineBadge('OSRM');
-  } catch(e) {
-    console.warn('OSRM failed, using Haversine fallback:', e.message);
-    dist = distanceFallback(lat1,lon1,lat2,lon2);
+  // OSRM abhi band mila tha -> 60 sec tak dobara try nahi (page dheema na ho)
+  if (Date.now() < _osrmDownUntil) {
     updateEngineBadge('HVS');
+    return distanceFallback(lat1,lon1,lat2,lon2);
   }
-
-  distCache[k1] = dist;
-  return dist;
+  try {
+    const dist = await distanceViaOSRM(lat1,lon1,lat2,lon2);
+    updateEngineBadge('OSRM');
+    distCache[k1] = dist;            // sirf asli road distance cache hota hai
+    return dist;
+  } catch(e) {
+    console.warn('OSRM failed, using approx estimate:', e.message);
+    _osrmDownUntil = Date.now() + 60000;
+    updateEngineBadge('HVS');
+    return distanceFallback(lat1,lon1,lat2,lon2);   // estimate cache nahi hota
+  }
 }
 
 function isValidCoord(lat,lon) {
@@ -433,52 +455,73 @@ function isValidCoord(lat,lon) {
 // ============================================================================
 // ELIGIBILITY CHECK
 // ============================================================================
+function normSub(s) {
+  return String(s || '').toLowerCase()
+    .replace(/[^a-z\u0900-\u097f\s]/g, ' ')
+    .replace(/\b(tehsil|tahsil|taluka|taluk|block|mandal|sub ?district|district|division|ward)\b/g, ' ')
+    .replace(/\s+/g, ' ').trim();
+}
+
 async function checkLoc(loc) {
   if (!homeLoc || !loc) return { ok:false, dist:0 };
   const d = await getRoadDistance(homeLoc.lat,homeLoc.lng,loc.lat,loc.lng);
-  const sameSub = homeLoc.sub && loc.sub &&
-                  homeLoc.sub.toLowerCase().trim() === loc.sub.toLowerCase().trim();
-  return { ok: d>40 && !sameSub, dist: Math.round(d) };
+  const dist = Math.round(d);                       // jo km screen par dikhta hai, wahi rule mein lagta hai
+  const a = normSub(homeLoc.sub), b = normSub(loc.sub);
+  const sameSub = !!a && !!b && a === b;
+  return { ok: dist >= 40 && !sameSub, dist };
 }
 
 // ============================================================================
 // LOCAL STORAGE - Data saved locally on user's device
 // ============================================================================
+const STORE_KEY = 'allowanceData_v2';
+let store = { homeLoc:null, months:{} };
+
+function monthKey() {
+  return document.getElementById('yearSelect').value + '-' + document.getElementById('monthSelect').value;
+}
+
 function saveDataLocally() {
-  const data = { rows:rows, homeLoc:homeLoc, ts:new Date().toISOString() };
-  localStorage.setItem('allowanceData_v1', JSON.stringify(data));
-  console.log('💾 Data saved on your device');
+  try {
+    store.homeLoc = homeLoc;
+    store.months[monthKey()] = rows;
+    localStorage.setItem(STORE_KEY, JSON.stringify(store));
+  } catch(e) { console.warn('Save failed (storage blocked/full):', e.message); }
 }
 
 function loadDataLocally() {
-  const saved = localStorage.getItem('allowanceData_v1');
-  if(saved) {
-    try {
-      const data = JSON.parse(saved);
-      rows = data.rows || [];
-      homeLoc = data.homeLoc || null;
-      if(homeLoc) {
-        const inp = document.getElementById('homeInput');
-        inp.value = homeLoc.name;
-        inp.classList.add('set');
-      }
-      console.log('✅ Data loaded from your device');
-      return true;
-    } catch(e) { console.error('Error loading:', e); }
+  try {
+    const saved = localStorage.getItem(STORE_KEY);
+    if (!saved) return false;
+    const data = JSON.parse(saved);
+    store = { homeLoc: data.homeLoc || null, months: data.months || {} };
+    homeLoc = store.homeLoc;
+    return true;
+  } catch(e) { console.warn('Load failed:', e.message); return false; }
+}
+
+function renderHomeButton() {
+  const btn = document.getElementById('homeBtn');
+  if (homeLoc) {
+    btn.innerHTML = `<i class="ti ti-map-pin"></i><span style="flex:1;overflow:hidden;text-overflow:ellipsis;">${sanitizeHTML(homeLoc.name)}</span><span class="pill-clear" title="Clear home" onclick="event.stopPropagation();clearHome()">✕</span>`;
+    btn.classList.add('set');
+  } else {
+    btn.innerHTML = '<i class="ti ti-map-pin"></i> Set Home Location';
+    btn.classList.remove('set');
   }
-  return false;
 }
 
 function clearAllData() {
-  if(confirm('Delete ALL data from your device? Cannot undo!')) {
-    localStorage.removeItem('allowanceData_v1');
+  if (confirm('Is device se SAARA data delete ho jayega (sab mahine + home location). Wapas nahi aayega. Continue?')) {
+    try { localStorage.removeItem(STORE_KEY); localStorage.removeItem('allowanceData_v1'); } catch(e) {}
+    store = { homeLoc:null, months:{} };
     rows = [];
     homeLoc = null;
+    renderHomeButton();
     buildTableStructure();
-    alert('All data cleared!');
+    alert('Saara data clear ho gaya.');
   }
 }
-
 // ============================================================================
 // DROPDOWNS
 // ============================================================================
@@ -510,20 +553,29 @@ function buildTableStructure() {
   const DATES = [lp];
   for(let d=1;d<=dm;d++) DATES.push(d);
 
-  // Check if we already have data built for this exact month/year
-  // (comparing only the previous-month date here was buggy: e.g. August and
-  // September both have "31" as their previous-month last date, so it would
-  // wrongly reuse September's 30-day rows for August and hide the 31st).
-  const hasExisting = rows.length === DATES.length && builtMonth === m && builtYear === y;
-
-  if(!hasExisting) {
+  // Is mahine ka saved data ho (aur sahi shape ka ho) to wahi use karo, warna naya table
+  const saved = store.months[monthKey()];
+  if (Array.isArray(saved) && saved.length === DATES.length && saved[0] && saved[0].date === lp) {
+    rows = saved;
+  } else {
     rows = DATES.map((d,i) => ({
       date:d, isFirstRow:i===0, isLastRow:i===DATES.length-1, night:null, day:null, specialActivity:""
     }));
-    builtMonth = m;
-    builtYear  = y;
   }
   buildTable();
+}
+
+// Date ke saath din (Mon, Tue...) — Sunday laal
+const WEEKDAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+function weekdayOf(i) {
+  const m = parseInt(document.getElementById('monthSelect').value);
+  const y = parseInt(document.getElementById('yearSelect').value);
+  const d = rows[i].date;
+  return WEEKDAYS[(i === 0 ? new Date(y, m-1, d) : new Date(y, m, d)).getDay()];
+}
+function dateCell(i, row) {
+  const w = weekdayOf(i);
+  return `${row.date}<span class="wd ${w==='Sun'?'sun':''}">${w}</span>`;
 }
 
 // ============================================================================
@@ -549,38 +601,44 @@ async function buildTable() {
     }
 
     const dayBox = `<td>${!row.isFirstRow ? `
-      <div class="inline-search">
-        <input type="text" class="inline-input ${row.day?(dStat.ok||hasSpecial?'ok':'fail'):''}"
-               id="dayInput_${i}" value="${row.day?escAttr(row.day.name):''}"
-               placeholder="Type day location..." autocomplete="off"
-               oninput="onInlineInput(this, ${i}, 'day')"
-               onfocus="onInlineFocus(this, ${i}, 'day')" />
-        ${row.day ? `<span class="dist-tag">${dStat.dist} km</span>` : ''}
-      </div>` : '<span style="color:#94a3b8;font-size:10px;">Prev Month</span>'}</td>`;
+      <span class="lpill ${row.day?'set':''} ${row.day?(dStat.ok||hasSpecial?'ok':'fail'):''}"
+            onclick="openModal(${i},'day')">
+        ${row.day ? `
+          <span class="pill-main">
+            ${sanitizeHTML(row.day.name)}
+            <span class="dist-tag">${dStat.dist} km</span>
+          </span>
+          <span class="pill-clear" title="Clear location"
+                onclick="event.stopPropagation(); clearLoc(${i},'day')">✕</span>
+        ` : 'Select Day Location'}
+      </span>` : '<span style="color:#94a3b8;font-size:10px;">Prev Month</span>'}</td>`;
 
     const nStat = await checkLoc(row.night);
     const nightBox = `<td>
-      <div class="inline-search">
-        <input type="text" class="inline-input ${row.night?(nStat.ok||hasSpecial?'ok':'fail'):''}"
-               id="nightInput_${i}" value="${row.night?escAttr(row.night.name):''}"
-               placeholder="Type night location..." autocomplete="off"
-               oninput="onInlineInput(this, ${i}, 'night')"
-               onfocus="onInlineFocus(this, ${i}, 'night')" />
-        ${row.night ? `<span class="dist-tag">${nStat.dist} km</span>` : ''}
-      </div></td>`;
+      <span class="lpill ${row.night?'set':''} ${row.night?(nStat.ok||hasSpecial?'ok':'fail'):''}"
+            onclick="openModal(${i},'night')">
+        ${row.night ? `
+          <span class="pill-main">
+            ${sanitizeHTML(row.night.name)}
+            <span class="dist-tag">${nStat.dist} km</span>
+          </span>
+          <span class="pill-clear" title="Clear location"
+                onclick="event.stopPropagation(); clearLoc(${i},'night')">✕</span>
+        ` : 'Select Night Location'}
+      </span></td>`;
 
     const statusBox = `<td>${!row.isFirstRow
       ? (eligible ? `<span class="cyes">${hasSpecial ? row.specialActivity.split(' ')[0] : 'YES'}</span>` : '<span class="cno">NO</span>')
       : '-'}</td>`;
 
-    const specialBox = `<td>
+    const specialBox = row.isFirstRow ? '<td><span class="cno">-</span></td>' : `<td>
       <select class="special-select ${hasSpecial?'special-set':''}" onchange="setSpecial(${i}, this.value)">
         <option value="">-- None --</option>
         <option value="QFL" ${row.specialActivity==='QFL'?'selected':''}>🚌 QFL</option>
         <option value="FNC" ${row.specialActivity==='FNC'?'selected':''}>📖 FNC</option>
       </select>
     </td>`;
-    tr.innerHTML = `<td>${row.date}</td>${dayBox}${nightBox}${specialBox}${statusBox}`;
+    tr.innerHTML = `<td>${dateCell(i,row)}</td>${dayBox}${nightBox}${specialBox}${statusBox}`;
     tb.appendChild(tr);
   }
 
@@ -617,24 +675,13 @@ function openModal(rowIdx, type) {
   selCoords=null; selName=null; selSub=null;
 
   setTimeout(() => {
-    if(!mbMap) {
-      mapboxgl.accessToken = window.__mbk;
-      mbMap = new mapboxgl.Map({
-        container:'map',
-        style:'mapbox://styles/mapbox/streets-v12',
-        center:[78.9629,20.5937],
-        zoom:4
-      });
-      mbMap.addControl(new mapboxgl.NavigationControl(), 'top-right');
-      mbMap.on('click', e => {
-        const {lng,lat} = e.lngLat;
-        selCoords={lat,lng};
-        selName=`${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-        selSub='';
-        document.getElementById('selLabel').textContent = selName;
-        pinMap(lng,lat);
-      });
-    } else { mbMap.resize(); }
+    if(!leafMap) {
+      leafMap = L.map('map').setView([20.5937, 78.9629], 4);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(leafMap);
+      leafMap.on('click', e => pickOnMap(e.latlng.lat, e.latlng.lng));
+    } else { leafMap.invalidateSize(); }
   }, 120);
 }
 
@@ -644,177 +691,238 @@ function closeModal() {
 }
 
 function pinMap(lng,lat) {
-  if(mbMarker) mbMarker.remove();
-  mbMarker = new mapboxgl.Marker({color:'#cc0000'}).setLngLat([lng,lat]).addTo(mbMap);
-  mbMap.flyTo({center:[lng,lat],zoom:12,speed:1.5});
+  if(leafMarker) leafMap.removeLayer(leafMarker);
+  leafMarker = L.marker([lat, lng], {
+    icon: L.icon({
+      iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+      iconSize: [25, 41], iconAnchor: [12, 41],
+      shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'
+    })
+  }).addTo(leafMap);
+  leafMap.flyTo([lat, lng], Math.max(leafMap.getZoom(), 12));
 }
 
 // ============================================================================
-// GEOCODING — Nominatim (search) + context extraction
+// LIVE AUTOCOMPLETE (Google-Maps style dropdown)
+// Type -> suggestions appear under the box -> click / Enter / arrow keys to pick.
+// Source order: Photon (typeahead-friendly, India bbox) -> Nominatim fallback.
+// A request counter + AbortController ensure old (slow) responses never
+// overwrite the newest results.
 // ============================================================================
-async function doSearch() {
+let _searchDebounce = null, _searchSeq = 0, _searchAbort = null;
+let _results = [], _activeIdx = -1;
+const INDIA_BBOX = '68.1766,7.9655,97.4025,35.4940';
+
+function _rlistMsg(html, color) {
+  document.getElementById('rlist').innerHTML =
+    `<div style="padding:14px 20px;text-align:center;font-size:12px;color:${color||'#94a3b8'};">${html}</div>`;
+}
+
+function handleSearchInput() {
+  clearTimeout(_searchDebounce);
   const q = document.getElementById('searchInput').value.trim();
-  if(!q || q.length<2) { alert('Please enter at least 2 characters'); return; }
-  const rlist = document.getElementById('rlist');
-  rlist.innerHTML = '<div style="padding:16px;text-align:center;color:#94a3b8;">Searching...</div>';
+  _activeIdx = -1;
+  if (q.length < 2) {
+    _searchSeq++;
+    if (_searchAbort) _searchAbort.abort();
+    _results = [];
+    document.getElementById('rlist').innerHTML = '';
+    return;
+  }
+  _rlistMsg('Searching...');
+  _searchDebounce = setTimeout(() => doSearch(true), 350);
+}
+
+function handleSearchKey(e) {
+  if (e.key === 'ArrowDown')      { e.preventDefault(); moveActive(1); }
+  else if (e.key === 'ArrowUp')   { e.preventDefault(); moveActive(-1); }
+  else if (e.key === 'Escape')    { document.getElementById('rlist').innerHTML = ''; }
+  else if (e.key === 'Enter') {
+    e.preventDefault();
+    clearTimeout(_searchDebounce);
+    if (_activeIdx >= 0 && _results[_activeIdx]) pickResult(_activeIdx);
+    else doSearch(false);
+  }
+}
+
+function moveActive(step) {
+  if (!_results.length) return;
+  _activeIdx = (_activeIdx + step + _results.length) % _results.length;
+  document.querySelectorAll('#rlist .ri').forEach((el, i) => {
+    el.classList.toggle('active', i === _activeIdx);
+    if (i === _activeIdx) el.scrollIntoView({ block: 'nearest' });
+  });
+}
+
+async function _fetchJSON(url, signal) {
+  const res = await fetch(url, { signal, headers: { Accept: 'application/json' } });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return res.json();
+}
+
+function _uniq(arr) {
+  const seen = new Set();
+  return arr.filter(x => x && !seen.has(x.toLowerCase()) && seen.add(x.toLowerCase()));
+}
+
+// Photon feature -> {lat,lng,name,secondary,sub}
+function _fromPhoton(f) {
+  const p = f.properties || {};
+  const street = [p.housenumber, p.street].filter(Boolean).join(' ');
+  const name = p.name || street || p.city || p.district || p.county || '';
+  const secondary = _uniq([street, p.district, p.city, p.county, p.state].filter(x => x && x !== name)).join(', ');
+  return {
+    lat: f.geometry.coordinates[1], lng: f.geometry.coordinates[0],
+    name, secondary, sub: p.district || p.county || ''
+  };
+}
+
+// Nominatim item -> same shape
+function _fromNominatim(it) {
+  const parts = (it.display_name || '').split(',').map(s => s.trim()).filter(Boolean);
+  if (parts[parts.length - 1] === 'India') parts.pop();
+  const name = it.name || parts[0] || '';
+  const a = it.address || {};
+  return {
+    lat: parseFloat(it.lat), lng: parseFloat(it.lon),
+    name, secondary: parts.slice(1).join(', '),
+    sub: a.suburb || a.subdistrict || a.county || a.city_district || ''
+  };
+}
+
+async function _searchProviders(q, signal) {
+  const enc = encodeURIComponent(q);
+  // 1) Photon — built for search-as-you-type
+  try {
+    const j = await _fetchJSON(`https://photon.komoot.io/api/?q=${enc}&lang=en&limit=10&bbox=${INDIA_BBOX}`, signal);
+    const out = (j.features || [])
+      .filter(f => f.properties && (f.properties.countrycode === 'IN' || f.properties.country === 'India'))
+      .map(_fromPhoton).filter(r => r.name);
+    if (out.length) return out;
+  } catch (e) { if (e.name === 'AbortError') throw e; console.warn('Photon failed:', e.message); }
+
+  // 2) Nominatim (India only), then 3) with ", India" appended
+  const nUrls = [
+    `https://nominatim.openstreetmap.org/search?q=${enc}&format=jsonv2&limit=10&countrycodes=in&addressdetails=1&accept-language=en`,
+    `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q + ', India')}&format=jsonv2&limit=10&addressdetails=1&accept-language=en`
+  ];
+  for (const u of nUrls) {
+    try {
+      const j = await _fetchJSON(u, signal);
+      const out = (j || []).map(_fromNominatim).filter(r => r.name);
+      if (out.length) return out;
+    } catch (e) { if (e.name === 'AbortError') throw e; console.warn('Nominatim failed:', e.message); }
+  }
+  return [];
+}
+
+async function doSearch(auto) {
+  const q = document.getElementById('searchInput').value.trim();
+  if (q.length < 2) { if (auto !== true) alert('Please enter at least 2 characters'); return; }
+
+  const seq = ++_searchSeq;
+  if (_searchAbort) _searchAbort.abort();
+  _searchAbort = new AbortController();
+  _rlistMsg('Searching...');
 
   try {
-    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=jsonv2&limit=10&countrycodes=in&addressdetails=1`;
-    const res = await fetch(url, { headers:{'Accept-Language':'en'} });
-    const data = await res.json();
-    rlist.innerHTML = '';
-
-    if(!data.length) {
-      rlist.innerHTML = '<div style="padding:20px;text-align:center;color:#94a3b8;">No results. Try a broader search.</div>';
-      return;
-    }
-
-    data.forEach(item => {
-      const sub = item.address?.suburb || item.address?.subdistrict ||
-                  item.address?.county || item.address?.city_district || '';
-      const div = document.createElement('div');
-      div.className = 'ri';
-      div.innerHTML = `<div class="rn">${sanitizeHTML(item.name || item.display_name.split(',')[0])}</div>
-                       <div class="ra">${sanitizeHTML(item.display_name)}</div>`;
-      div.onclick = () => {
-        selCoords = { lat:parseFloat(item.lat), lng:parseFloat(item.lon) };
-        selName   = item.name || item.display_name.split(',')[0];
-        selSub    = sub;
-        document.getElementById('selLabel').textContent =
-          sanitizeHTML(selName) + (sub ? ` — ${sanitizeHTML(sub)}` : '');
-        pinMap(selCoords.lng, selCoords.lat);
-      };
-      rlist.appendChild(div);
-    });
-  } catch(e) {
-    rlist.innerHTML = '<div style="padding:16px;color:#991b1b;">Search failed. Please retry.</div>';
-  }
-}
-
-// ============================================================================
-// INLINE DAY/NIGHT LOCATION SEARCH — direct type, no separate popup box
-// ============================================================================
-let inlineTimer = null;
-let inlineTarget = null; // { rowIdx, type, inputEl }
-
-function ensureSuggestBox() {
-  let box = document.getElementById('inlineSuggestBox');
-  if (!box) {
-    box = document.createElement('div');
-    box.id = 'inlineSuggestBox';
-    box.className = 'inline-suggest';
-    document.body.appendChild(box);
-  }
-  return box;
-}
-
-function positionSuggestBox(inputEl) {
-  const box = ensureSuggestBox();
-  const r = inputEl.getBoundingClientRect();
-  const spaceBelow = window.innerHeight - r.bottom;
-  box.style.width = r.width + 'px';
-  box.style.left = Math.max(4, r.left) + 'px';
-  if (spaceBelow < 180 && r.top > 180) {
-    box.style.top = 'auto';
-    box.style.bottom = (window.innerHeight - r.top + 4) + 'px';
-  } else {
-    box.style.bottom = 'auto';
-    box.style.top = (r.bottom + 4) + 'px';
-  }
-}
-
-function hideSuggestBox() {
-  const box = document.getElementById('inlineSuggestBox');
-  if (box) { box.style.display = 'none'; box.innerHTML = ''; }
-  inlineTarget = null;
-}
-
-function onInlineFocus(inputEl, rowIdx, type) {
-  inlineTarget = { rowIdx, type, inputEl };
-  const q = inputEl.value.trim();
-  if (q.length >= 2) doInlineSearch(q);
-}
-
-function onInlineInput(inputEl, rowIdx, type) {
-  inlineTarget = { rowIdx, type, inputEl };
-  clearTimeout(inlineTimer);
-  const q = inputEl.value.trim();
-  if (q.length < 2) { hideSuggestBox(); inlineTarget = { rowIdx, type, inputEl }; return; }
-  inlineTimer = setTimeout(() => doInlineSearch(q), 400);
-}
-
-async function doInlineSearch(q) {
-  if (!inlineTarget) return;
-  const { inputEl } = inlineTarget;
-  const box = ensureSuggestBox();
-  positionSuggestBox(inputEl);
-  box.style.display = 'block';
-  box.innerHTML = '<div class="inline-suggest-item" style="color:#94a3b8;cursor:default;">Searching...</div>';
-
-  try {
-    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=jsonv2&limit=8&countrycodes=in&addressdetails=1`;
-    const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
-    const data = await res.json();
-
-    // Ignore stale results if the user already moved to a different field or closed the box
-    if (!inlineTarget || inlineTarget.inputEl !== inputEl) return;
-
-    box.innerHTML = '';
-    if (!data.length) {
-      box.innerHTML = '<div class="inline-suggest-item" style="color:#94a3b8;cursor:default;">No results. Try a broader search.</div>';
-      return;
-    }
-    data.forEach(item => {
-      const sub = item.address?.suburb || item.address?.subdistrict ||
-                  item.address?.county || item.address?.city_district || '';
-      const name = item.name || item.display_name.split(',')[0];
-      const div = document.createElement('div');
-      div.className = 'inline-suggest-item';
-      div.innerHTML = `<div class="isn">${sanitizeHTML(name)}</div><div class="isa">${sanitizeHTML(item.display_name)}</div>`;
-      div.onclick = () => selectInlineLocation({ lat: parseFloat(item.lat), lng: parseFloat(item.lon), name, sub });
-      box.appendChild(div);
-    });
+    let data = await _searchProviders(q, _searchAbort.signal);
+    if (seq !== _searchSeq) return;               // a newer search has started
+    data = data.filter((r, i, a) =>
+      isValidCoord(r.lat, r.lng) &&
+      a.findIndex(x => x.name === r.name && x.secondary === r.secondary) === i);
+    _results = data; _activeIdx = -1;
+    renderResults();
   } catch (e) {
-    if (!inlineTarget || inlineTarget.inputEl !== inputEl) return;
-    box.innerHTML = '<div class="inline-suggest-item" style="color:#991b1b;cursor:default;">Search failed. Please retry.</div>';
+    if (e.name === 'AbortError' || seq !== _searchSeq) return;
+    _rlistMsg('Search failed. Internet check karke dobara try karein.', '#991b1b');
+  }
+}
+function renderResults() {
+  const rl = document.getElementById('rlist');
+  if (!_results.length) {
+    _rlistMsg('No results. Spelling check karein ya district / state ka naam saath likhein.');
+    return;
+  }
+  rl.innerHTML = '';
+  _results.forEach((r, i) => {
+    const div = document.createElement('div');
+    div.className = 'ri';
+    div.innerHTML = `<i class="ti ti-map-pin ri-ic"></i>
+      <div class="ri-tx"><div class="rn">${sanitizeHTML(r.name)}</div>
+      <div class="ra">${sanitizeHTML(r.secondary)}</div></div>`;
+    div.onclick = () => pickResult(i);
+    div.onmouseenter = () => { _activeIdx = i; moveActive(0); };
+    rl.appendChild(div);
+  });
+}
+
+function setSelLabel(name, secondary, sub) {
+  document.getElementById('selLabel').textContent =
+    name + (secondary ? ' — ' + secondary : '') + (sub ? '' : '  (subdistrict nahi mila)');
+}
+
+let _revSeq = 0;
+async function pickOnMap(lat, lng) {
+  const seq = ++_revSeq;
+  selCoords = { lat, lng };
+  selName   = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+  selSub    = '';
+  document.getElementById('selLabel').textContent = 'Jagah ka naam dhoondh rahe hain...';
+  document.getElementById('rlist').innerHTML = '';
+  pinMap(lng, lat);
+  try {
+    const j = await _fetchJSON(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=jsonv2&zoom=14&addressdetails=1&accept-language=en`);
+    if (seq !== _revSeq) return;                       // user ne dusri jagah click kar diya
+    const r = _fromNominatim(j);
+    if (r.name) { selName = r.name; selSub = r.sub || ''; }
+    setSelLabel(selName, r.secondary, selSub);
+  } catch (e) {
+    if (seq !== _revSeq) return;
+    setSelLabel(selName, '', '');                      // internet nahi: coordinates hi naam rahenge
   }
 }
 
-function selectInlineLocation(loc) {
-  if (!inlineTarget) return;
-  const { rowIdx, type } = inlineTarget;
-  if (type === 'home') {
-    homeLoc = { lat: loc.lat, lng: loc.lng, name: loc.name, sub: loc.sub };
-    const inp = document.getElementById('homeInput');
-    if (inp) { inp.value = loc.name; inp.classList.add('set'); }
-  } else {
-    rows[rowIdx][type] = { lat: loc.lat, lng: loc.lng, name: loc.name, sub: loc.sub };
-  }
-  saveDataLocally();
-  hideSuggestBox();
-  buildTable();
+function pickResult(i) {
+  const r = _results[i];
+  if (!r) return;
+  selCoords = { lat: r.lat, lng: r.lng };
+  selName   = r.name;
+  selSub    = r.sub || '';
+  setSelLabel(r.name, r.secondary, r.sub);
+  document.getElementById('searchInput').value = r.name;
+  document.getElementById('rlist').innerHTML = '';   // collapse list like Google Maps
+  _results = []; _activeIdx = -1;
+  pinMap(r.lng, r.lat);
 }
-
-document.addEventListener('click', (e) => {
-  const box = document.getElementById('inlineSuggestBox');
-  if (!box || box.style.display === 'none') return;
-  if (e.target.closest('.inline-search') || box.contains(e.target)) return;
-  hideSuggestBox();
-});
-document.addEventListener('scroll', () => hideSuggestBox(), true);
-window.addEventListener('resize', () => hideSuggestBox());
 
 function confirmLoc() {
   if(!selCoords || !selName) { alert('Please select a location'); return; }
   if(curType==='home') {
     homeLoc = { lat:selCoords.lat, lng:selCoords.lng, name:selName, sub:selSub };
-    const inp = document.getElementById('homeInput');
-    if(inp) { inp.value = selName; inp.classList.add('set'); }
+    renderHomeButton();
   } else if(curRow !== null) {
     rows[curRow][curType] = { lat:selCoords.lat, lng:selCoords.lng, name:selName, sub:selSub };
   }
   saveDataLocally();
   closeModal();
+  buildTable();
+}
+
+// Clear a row location (day or night)
+function clearLoc(rowIdx, type) {
+  if (rows[rowIdx]) {
+    rows[rowIdx][type] = null;
+    saveDataLocally();
+    buildTable();
+  }
+}
+
+// Clear home location
+function clearHome() {
+  homeLoc = null;
+  renderHomeButton();
+  saveDataLocally();
   buildTable();
 }
 
@@ -877,54 +985,267 @@ function downloadExcel() {
 }
 
 function downloadCSV(){ downloadExcel(); }
-function submitData() {
-  // Submit functionality removed
-  alert('Use Download Excel or Download CSV to export your data');
-}
 
-function sendViaEmail() {
-  const recipient = document.getElementById('recipientEmail').value.trim();
-  if (!recipient) { alert('Please enter recipient email address'); return; }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) { alert('Please enter a valid email address'); return; }
+// ============================================================================
+// PDF GENERATION
+// Layout:
+//   ① Red header  — "Jadwal Allowance Calculator | Month Year"
+//   ② Full table  — Date / Day Location / Night Location / Special / Status
+//   ③ Dark footer — "Total Allowance Days : X"  (X in dark blue, bold)
+// ============================================================================
+async function generatePDF(asBlob) {
+  const { jsPDF } = window.jspdf;
 
-  const m  = parseInt(document.getElementById('monthSelect').value);
-  const y  = parseInt(document.getElementById('yearSelect').value);
-  const tot = parseInt(document.getElementById('totDays').textContent) || 0;
+  const m         = parseInt(document.getElementById('monthSelect').value);
+  const y         = parseInt(document.getElementById('yearSelect').value);
+  const tot       = parseInt(document.getElementById('totDays').textContent) || 0;
   const monthName = monthNames[m];
 
-  const homeStr = homeLoc ? homeLoc.name : 'Not set';
+  setLoading(true, 'PDF generate ho rahi hai...');
 
-  // Build day-wise summary
-  let lines = '';
-  rows.forEach(r => {
-    if (r.isFirstRow) return;
-    const day   = r.day   ? r.day.name   : '-';
-    const night = r.night ? r.night.name : '-';
-    const sp    = r.specialActivity ? ` [${r.specialActivity}]` : '';
-    lines += `${r.date} ${monthName}: Day: ${day} | Night: ${night}${sp}\n`;
-  });
+  try {
+    // ── Build table rows (eligibility already computed on screen, re-check here)
+    const tableBody = [];
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const hasSpecial = row.specialActivity && row.specialActivity !== '';
+      let statusText = '-';
+      let eligible   = false;
 
-  const subject = encodeURIComponent(`Jadwal Allowance Report — ${monthName} ${y}`);
-  const body = encodeURIComponent(
-`Jadwal Allowance Report
-Month: ${monthName} ${y}
-Home Location: ${homeStr}
+      // Calculate distances for both locations (for km display)
+      const dStat  = await checkLoc(row.day);
+      const nStat  = await checkLoc(row.night);
+
+      if (!row.isFirstRow) {
+        if (hasSpecial) {
+          eligible   = true;
+          statusText = row.specialActivity;
+        } else {
+          const pnStat = i > 0 ? await checkLoc(rows[i - 1].night) : { ok: false };
+          if (dStat.ok && pnStat.ok) { eligible = true; statusText = 'YES'; }
+          else                        { statusText = 'NO'; }
+        }
+      }
+
+      // "City Name (45 km)" format
+      const dayCell   = row.isFirstRow
+        ? 'Prev Month'
+        : (row.day   ? row.day.name + ' (' + dStat.dist + ' km)'   : '—');
+      const nightCell = row.night ? row.night.name + ' (' + nStat.dist + ' km)' : '—';
+
+      tableBody.push({
+        date:     row.date + ' ' + weekdayOf(i),
+        dayLoc:   dayCell,
+        nightLoc: nightCell,
+        special:  row.specialActivity || '—',
+        status:   statusText,
+        eligible
+      });
+    }
+
+    // ── Create PDF
+    const pdf   = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pageW = pdf.internal.pageSize.getWidth();
+
+    // ① RED HEADER ──────────────────────────────────────────────
+    // Taller header if home location exists
+    const homeName = homeLoc ? homeLoc.name : null;
+    const hdrH = homeName ? 38 : 30;
+
+    // White/light gray header background
+    pdf.setFillColor(248, 250, 252);      // light gray-white
+    pdf.rect(0, 0, pageW, hdrH, 'F');
+
+    // Left accent bar
+    pdf.setFillColor(204, 0, 0);
+    pdf.rect(0, 0, 4, hdrH, 'F');
+
+    // Title — dark red
+    pdf.setTextColor(153, 0, 0);
+    pdf.setFontSize(15);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Jadwal Allowance Calculator', 12, 13);
+
+    // Month + Year subtitle — dark gray
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(71, 85, 105);
+    pdf.text(`${monthName}  ${y}`, 12, 23);
+
+    // Generated date — right side
+    pdf.setFontSize(8);
+    pdf.setTextColor(100, 116, 139);
+    pdf.text(`Generated: ${new Date().toLocaleDateString('en-IN')}`, pageW - 12, 23, { align: 'right' });
+
+    // Home Location — below Month/Year (only if set)
+    if (homeName) {
+      pdf.setFontSize(8.5);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(100, 116, 139);
+      pdf.text('Home:', 12, 33);
+      pdf.setTextColor(30, 41, 59);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(homeName, 28, 33);
+    }
+
+    // ② FULL TABLE ──────────────────────────────────────────────
+    pdf.autoTable({
+      startY: hdrH + 6,
+      head:   [['Date', 'Day Location', 'Night Location', 'Special', 'Status']],
+      body:   tableBody.map(r => [r.date, r.dayLoc, r.nightLoc, r.special, r.status]),
+      theme:  'grid',
+      styles: {
+        fontSize:  8,
+        cellPadding: 3,
+        overflow:  'linebreak',
+        textColor: [51, 65, 85]
+      },
+      headStyles: {
+        fillColor:  [30, 41, 59],
+        textColor:  [255, 255, 255],
+        fontStyle:  'bold',
+        fontSize:   8.5,
+        halign:     'center'
+      },
+      columnStyles: {
+        0: { halign: 'center', cellWidth: 18 },
+        1: { cellWidth: 'auto' },
+        2: { cellWidth: 'auto' },
+        3: { halign: 'center', cellWidth: 18 },
+        4: { halign: 'center', cellWidth: 16 }
+      },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      // Color YES/QFL/FNC green, NO gray
+      didParseCell: (data) => {
+        if (data.section === 'body' && data.column.index === 4) {
+          const v = data.cell.raw;
+          if (v === 'YES' || v === 'QFL' || v === 'FNC') {
+            data.cell.styles.textColor = [22, 101, 52];
+            data.cell.styles.fontStyle = 'bold';
+          } else if (v === 'NO') {
+            data.cell.styles.textColor = [148, 163, 184];
+          }
+        }
+      },
+      margin: { left: 10, right: 10 }
+    });
+
+    // ③ DARK FOOTER — Total Allowance Days ─────────────────────
+    const finalY = pdf.lastAutoTable.finalY + 8;
+
+    // Dark background box
+    pdf.setFillColor(30, 41, 59);
+    pdf.roundedRect(10, finalY, pageW - 20, 18, 2, 2, 'F');
+
+    // Label — white, bold
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFontSize(11);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Total Allowance Days :', 18, finalY + 11.5);
+
+    // Number — white, bold, large
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFontSize(15);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(String(tot), pageW - 18, finalY + 11.5, { align: 'right' });
+
+    // ── Save
+    const fname = `Jadwal_Allowance_${monthName}_${y}.pdf`;
+    if (asBlob) {
+      const blob = pdf.output('blob');
+      setLoading(false);
+      return { fname, blob };
+    }
+    pdf.save(fname);
+    setLoading(false);
+    return fname;
+
+  } catch(e) {
+    setLoading(false);
+    alert('PDF error: ' + e.message);
+    return null;
+  }
+}
+// Phone ka Share menu (WhatsApp / Gmail...) — PDF seedha attach hoti hai
+async function sharePDF() {
+  const res = await generatePDF(true);
+  if (!res) return;
+  const file = new File([res.blob], res.fname, { type: 'application/pdf' });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: res.fname.replace('.pdf','').replace(/_/g,' ') });
+    } catch (e) {
+      if (e.name !== 'AbortError') alert('Share nahi ho paya: ' + e.message);
+    }
+  } else {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(res.blob);
+    a.download = res.fname;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    alert('Is device/browser mein seedha share nahi hota. PDF download ho gayi hai — use Mail ya WhatsApp mein attach karein.');
+  }
+}
+
+// Track how many PDF downloads are in flight simultaneously
+let _activeDownloads = 0;
+
+function _pdfMailStatus(msg, color) {
+  const el = document.getElementById('pdfMailStatus');
+  if (el) { el.textContent = msg; el.style.color = color || '#475569'; }
+}
+
+async function generatePDFandEmail() {
+  const recipient = document.getElementById('recipientEmail').value.trim();
+  if (!recipient) { alert('Pehle email address daalen'); return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) { alert('Valid email address daalen'); return; }
+
+  const m         = parseInt(document.getElementById('monthSelect').value);
+  const y         = parseInt(document.getElementById('yearSelect').value);
+  const tot       = parseInt(document.getElementById('totDays').textContent) || 0;
+  const monthName = monthNames[m];
+
+  _pdfMailStatus('\u{1F4C4} PDF ban rahi hai...', '#0284c7');
+
+  // Check if multiple downloads are already running before we start ours
+  _activeDownloads++;
+  const multipleInFlight = _activeDownloads > 1;
+
+  const fname = await generatePDF();
+  _activeDownloads--;
+  if (!fname) { _pdfMailStatus('', ''); return; }
+
+  const subject = encodeURIComponent(`Jadwal Allowance \u2014 ${monthName} ${y}`);
+  const body    = encodeURIComponent(
+`Month: ${monthName} ${y}
 Total Eligible Days: ${tot}
 
---- Day-wise Details ---
-${lines}
----
-Note: Please find the PDF attached (save via Print/PDF first).
-This report was generated on ${new Date().toLocaleDateString('en-IN')}.`
+(PDF attached)`
   );
+  const mailUrl = `mailto:${recipient}?subject=${subject}&body=${body}`;
 
-  window.location.href = `mailto:${recipient}?subject=${subject}&body=${body}`;
+  if (multipleInFlight) {
+    // Multiple files were downloading — block with alert so browser does NOT
+    // show its own "allow multiple downloads?" permission dialog
+    _pdfMailStatus('\u2705 PDF download ho gayi! OK karein — Mail khulega.', '#166534');
+    alert(`\u2705 PDF download ho gayi!\n\nFile: ${fname}\n\nOK karein \u2014 Mail App khulega.`);
+    _pdfMailStatus('', '');
+    window.location.href = mailUrl;
+  } else {
+    // Single file only — no alert, just wait 1.8s then open mail automatically
+    _pdfMailStatus('\u2705 PDF download ho gayi! Mail app ab khul raha hai...', '#166534');
+    await new Promise(r => setTimeout(r, 1800));
+    window.location.href = mailUrl;
+    setTimeout(() => _pdfMailStatus('', ''), 3000);
+  }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  loadDataLocally();
+  renderHomeButton();
   initDropdowns();
 
-  // Privacy notice: show once per device, then auto-fade after 6 seconds
+  // Privacy notice: show once per device, then auto-fade after 12 seconds
   const pn = document.getElementById('privacyNotice');
   if (pn) {
     if (localStorage.getItem('privacyNoticeSeen')) {
@@ -935,7 +1256,7 @@ document.addEventListener('DOMContentLoaded', () => {
         pn.style.maxHeight = '0';
         pn.style.padding = '0';
         setTimeout(() => { pn.style.display = 'none'; }, 1000);
-      }, 6000);
+      }, 12000);
       localStorage.setItem('privacyNoticeSeen', '1');
     }
   }
